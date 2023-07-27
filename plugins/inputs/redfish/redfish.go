@@ -262,143 +262,149 @@ func (r *Redfish) Gather(acc telegraf.Accumulator) error {
 			return err
 		}
 
-		thermal, err := r.getThermal(chassis.Thermal.Ref)
-		if err != nil {
-			return err
-		}
+		if chassis.Thermal.Ref != "" {
 
-		for _, j := range thermal.Temperatures {
-			tags := map[string]string{}
-			tags["member_id"] = j.MemberID
-			tags["address"] = address
-			tags["name"] = j.Name
-			tags["source"] = system.Hostname
-			tags["state"] = j.Status.State
-			tags["health"] = j.Status.Health
-			if chassis.Location != nil {
-				tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
-				tags["room"] = chassis.Location.PostalAddress.Room
-				tags["rack"] = chassis.Location.Placement.Rack
-				tags["row"] = chassis.Location.Placement.Row
+			thermal, err := r.getThermal(chassis.Thermal.Ref)
+			if err != nil {
+				return err
 			}
 
-			fields := make(map[string]interface{})
-			fields["reading_celsius"] = j.ReadingCelsius
-			fields["upper_threshold_critical"] = j.UpperThresholdCritical
-			fields["upper_threshold_fatal"] = j.UpperThresholdFatal
-			fields["lower_threshold_critical"] = j.LowerThresholdCritical
-			fields["lower_threshold_fatal"] = j.LowerThresholdFatal
-			acc.AddFields("redfish_thermal_temperatures", fields, tags)
-		}
+			for _, j := range thermal.Temperatures {
+				tags := map[string]string{}
+				tags["member_id"] = j.MemberID
+				tags["address"] = address
+				tags["name"] = j.Name
+				tags["source"] = system.Hostname
+				tags["state"] = j.Status.State
+				tags["health"] = j.Status.Health
+				if chassis.Location != nil {
+					tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
+					tags["room"] = chassis.Location.PostalAddress.Room
+					tags["rack"] = chassis.Location.Placement.Rack
+					tags["row"] = chassis.Location.Placement.Row
+				}
 
-		for _, j := range thermal.Fans {
-			tags := map[string]string{}
-			fields := make(map[string]interface{})
-			tags["member_id"] = j.MemberID
-			tags["address"] = address
-			tags["name"] = j.Name
-			tags["source"] = system.Hostname
-			tags["state"] = j.Status.State
-			tags["health"] = j.Status.Health
-			if chassis.Location != nil {
-				tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
-				tags["room"] = chassis.Location.PostalAddress.Room
-				tags["rack"] = chassis.Location.Placement.Rack
-				tags["row"] = chassis.Location.Placement.Row
-			}
-
-			if j.ReadingUnits != nil && *j.ReadingUnits == "RPM" {
+				fields := make(map[string]interface{})
+				fields["reading_celsius"] = j.ReadingCelsius
 				fields["upper_threshold_critical"] = j.UpperThresholdCritical
 				fields["upper_threshold_fatal"] = j.UpperThresholdFatal
 				fields["lower_threshold_critical"] = j.LowerThresholdCritical
 				fields["lower_threshold_fatal"] = j.LowerThresholdFatal
-				fields["reading_rpm"] = j.Reading
-			} else {
-				fields["reading_percent"] = j.Reading
+				acc.AddFields("redfish_thermal_temperatures", fields, tags)
 			}
-			acc.AddFields("redfish_thermal_fans", fields, tags)
+
+			for _, j := range thermal.Fans {
+				tags := map[string]string{}
+				fields := make(map[string]interface{})
+				tags["member_id"] = j.MemberID
+				tags["address"] = address
+				tags["name"] = j.Name
+				tags["source"] = system.Hostname
+				tags["state"] = j.Status.State
+				tags["health"] = j.Status.Health
+				if chassis.Location != nil {
+					tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
+					tags["room"] = chassis.Location.PostalAddress.Room
+					tags["rack"] = chassis.Location.Placement.Rack
+					tags["row"] = chassis.Location.Placement.Row
+				}
+
+				if j.ReadingUnits != nil && *j.ReadingUnits == "RPM" {
+					fields["upper_threshold_critical"] = j.UpperThresholdCritical
+					fields["upper_threshold_fatal"] = j.UpperThresholdFatal
+					fields["lower_threshold_critical"] = j.LowerThresholdCritical
+					fields["lower_threshold_fatal"] = j.LowerThresholdFatal
+					fields["reading_rpm"] = j.Reading
+				} else {
+					fields["reading_percent"] = j.Reading
+				}
+				acc.AddFields("redfish_thermal_fans", fields, tags)
+			}
 		}
 
-		power, err := r.getPower(chassis.Power.Ref)
-		if err != nil {
-			return err
-		}
+		if chassis.Power.Ref != "" {
 
-		for _, j := range power.PowerControl {
-			tags := map[string]string{
-				"member_id": j.MemberID,
-				"address":   address,
-				"name":      j.Name,
-				"source":    system.Hostname,
-			}
-			if chassis.Location != nil {
-				tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
-				tags["room"] = chassis.Location.PostalAddress.Room
-				tags["rack"] = chassis.Location.Placement.Rack
-				tags["row"] = chassis.Location.Placement.Row
+			power, err := r.getPower(chassis.Power.Ref)
+			if err != nil {
+				return err
 			}
 
-			fields := map[string]interface{}{
-				"power_allocated_watts":  j.PowerAllocatedWatts,
-				"power_available_watts":  j.PowerAvailableWatts,
-				"power_capacity_watts":   j.PowerCapacityWatts,
-				"power_consumed_watts":   j.PowerConsumedWatts,
-				"power_requested_watts":  j.PowerRequestedWatts,
-				"average_consumed_watts": j.PowerMetrics.AverageConsumedWatts,
-				"interval_in_min":        j.PowerMetrics.IntervalInMin,
-				"max_consumed_watts":     j.PowerMetrics.MaxConsumedWatts,
-				"min_consumed_watts":     j.PowerMetrics.MinConsumedWatts,
+			for _, j := range power.PowerControl {
+				tags := map[string]string{
+					"member_id": j.MemberID,
+					"address":   address,
+					"name":      j.Name,
+					"source":    system.Hostname,
+				}
+				if chassis.Location != nil {
+					tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
+					tags["room"] = chassis.Location.PostalAddress.Room
+					tags["rack"] = chassis.Location.Placement.Rack
+					tags["row"] = chassis.Location.Placement.Row
+				}
+
+				fields := map[string]interface{}{
+					"power_allocated_watts":  j.PowerAllocatedWatts,
+					"power_available_watts":  j.PowerAvailableWatts,
+					"power_capacity_watts":   j.PowerCapacityWatts,
+					"power_consumed_watts":   j.PowerConsumedWatts,
+					"power_requested_watts":  j.PowerRequestedWatts,
+					"average_consumed_watts": j.PowerMetrics.AverageConsumedWatts,
+					"interval_in_min":        j.PowerMetrics.IntervalInMin,
+					"max_consumed_watts":     j.PowerMetrics.MaxConsumedWatts,
+					"min_consumed_watts":     j.PowerMetrics.MinConsumedWatts,
+				}
+
+				acc.AddFields("redfish_power_powercontrol", fields, tags)
 			}
 
-			acc.AddFields("redfish_power_powercontrol", fields, tags)
-		}
+			for _, j := range power.PowerSupplies {
+				tags := map[string]string{}
+				tags["member_id"] = j.MemberID
+				tags["address"] = address
+				tags["name"] = j.Name
+				tags["source"] = system.Hostname
+				tags["state"] = j.Status.State
+				tags["health"] = j.Status.Health
+				if chassis.Location != nil {
+					tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
+					tags["room"] = chassis.Location.PostalAddress.Room
+					tags["rack"] = chassis.Location.Placement.Rack
+					tags["row"] = chassis.Location.Placement.Row
+				}
 
-		for _, j := range power.PowerSupplies {
-			tags := map[string]string{}
-			tags["member_id"] = j.MemberID
-			tags["address"] = address
-			tags["name"] = j.Name
-			tags["source"] = system.Hostname
-			tags["state"] = j.Status.State
-			tags["health"] = j.Status.Health
-			if chassis.Location != nil {
-				tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
-				tags["room"] = chassis.Location.PostalAddress.Room
-				tags["rack"] = chassis.Location.Placement.Rack
-				tags["row"] = chassis.Location.Placement.Row
+				fields := make(map[string]interface{})
+				fields["power_input_watts"] = j.PowerInputWatts
+				fields["power_output_watts"] = j.PowerOutputWatts
+				fields["line_input_voltage"] = j.LineInputVoltage
+				fields["last_power_output_watts"] = j.LastPowerOutputWatts
+				fields["power_capacity_watts"] = j.PowerCapacityWatts
+				acc.AddFields("redfish_power_powersupplies", fields, tags)
 			}
 
-			fields := make(map[string]interface{})
-			fields["power_input_watts"] = j.PowerInputWatts
-			fields["power_output_watts"] = j.PowerOutputWatts
-			fields["line_input_voltage"] = j.LineInputVoltage
-			fields["last_power_output_watts"] = j.LastPowerOutputWatts
-			fields["power_capacity_watts"] = j.PowerCapacityWatts
-			acc.AddFields("redfish_power_powersupplies", fields, tags)
-		}
+			for _, j := range power.Voltages {
+				tags := map[string]string{}
+				tags["member_id"] = j.MemberID
+				tags["address"] = address
+				tags["name"] = j.Name
+				tags["source"] = system.Hostname
+				tags["state"] = j.Status.State
+				tags["health"] = j.Status.Health
+				if chassis.Location != nil {
+					tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
+					tags["room"] = chassis.Location.PostalAddress.Room
+					tags["rack"] = chassis.Location.Placement.Rack
+					tags["row"] = chassis.Location.Placement.Row
+				}
 
-		for _, j := range power.Voltages {
-			tags := map[string]string{}
-			tags["member_id"] = j.MemberID
-			tags["address"] = address
-			tags["name"] = j.Name
-			tags["source"] = system.Hostname
-			tags["state"] = j.Status.State
-			tags["health"] = j.Status.Health
-			if chassis.Location != nil {
-				tags["datacenter"] = chassis.Location.PostalAddress.DataCenter
-				tags["room"] = chassis.Location.PostalAddress.Room
-				tags["rack"] = chassis.Location.Placement.Rack
-				tags["row"] = chassis.Location.Placement.Row
+				fields := make(map[string]interface{})
+				fields["reading_volts"] = j.ReadingVolts
+				fields["upper_threshold_critical"] = j.UpperThresholdCritical
+				fields["upper_threshold_fatal"] = j.UpperThresholdFatal
+				fields["lower_threshold_critical"] = j.LowerThresholdCritical
+				fields["lower_threshold_fatal"] = j.LowerThresholdFatal
+				acc.AddFields("redfish_power_voltages", fields, tags)
 			}
-
-			fields := make(map[string]interface{})
-			fields["reading_volts"] = j.ReadingVolts
-			fields["upper_threshold_critical"] = j.UpperThresholdCritical
-			fields["upper_threshold_fatal"] = j.UpperThresholdFatal
-			fields["lower_threshold_critical"] = j.LowerThresholdCritical
-			fields["lower_threshold_fatal"] = j.LowerThresholdFatal
-			acc.AddFields("redfish_power_voltages", fields, tags)
 		}
 	}
 
